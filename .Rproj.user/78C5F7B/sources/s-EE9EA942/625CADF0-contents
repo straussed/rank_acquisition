@@ -1,0 +1,64 @@
+###############################################################################
+#                     Sex differences in dominance behavior                   #
+#                                                                             #
+#                            Eli Strauss July 2019                            #
+#                                                                             #
+#                                                                             #
+###############################################################################
+
+
+#### Goals:
+
+# 1) Examine sex differences in ability to dominate group-mates:
+#    a) litrank
+#    b) throughout development
+#    c) pre-dispersal
+#    d) After 'dispersal' in cases where males do not disperse
+
+
+###### Set up workspace #####
+rm(list = ls())
+setwd('~/Documents/Research/SexAndDominance/')
+options(stringsAsFactors = FALSE)
+library(dplyr)
+library(hyenadata)
+
+
+##### Load data tables ####
+data("tblHyenas")
+data("tblAggression")
+data("tblFemaleRanks")
+data("tblLifeHistory.wide")
+
+
+#### Clean data tables ####
+## add clan to tblHyenas
+tblHyenas$clan <- left_join(tblHyenas,
+                            tblLifeHistory.wide, 
+                            by = 'id')$dob_event_data
+
+## 1. Identify mixed-sex twin litters
+mixed.sex.litters <- tblHyenas %>%
+  filter(sex %in% c('m', 'f')) %>% ### limit to known sexes
+  group_by(mom, birthdate) %>% ### group by mom and birthdate
+  summarize(litter.size = length(id), ### tally number of cubs
+            num.sexes = length(unique(sex))) %>% ### tally number of sexes
+  filter(num.sexes == 2, litter.size >= 2) %>% ### restrict to litters of two with 2 sexes
+  na.omit() %>%
+  inner_join(tblHyenas, by = c('mom', 'birthdate')) %>% ### join with tblHyenas
+  left_join(tblLifeHistory.wide[,c('id', 'disappeared')], by = 'id') ### add disappeared date
+
+mixed.sex.litters <- mixed.sex.litters %>% 
+  group_by(mom, birthdate) %>%
+  mutate(litter = group_indices()) 
+
+## 2. Select aggressions involving the mixed sex individuals identified above
+tblAggression$agg.clan <- left_join(tblAggression, tblHyenas, by = c('aggressor' = 'id'))$clan.y
+tblAggression$recip.clan <- left_join(tblAggression, tblHyenas, by = c('recip' = 'id'))$clan.y
+
+mixed.litter.aggs <- filter(tblAggression, aggressor %in% mixed.sex.litters$id | 
+                              recip %in% mixed.sex.litters$id,
+                            agg.clan == recip.clan)
+
+save(mixed.litter.aggs, mixed.sex.litters, file = '01.cleaned.data.Rdata')
+

@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1560506561908.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3277997135",
+    "id" : "600CE3E2",
+    "lastKnownWriteTime" : 1560506714,
+    "last_content_update" : 1560506714062,
+    "path" : "~/Documents/Research/RankAcquisitionSurvival/05.survival_analysis.R",
+    "project_path" : "05.survival_analysis.R",
+    "properties" : {
+        "cursorPosition" : "148,0",
+        "docOutlineVisible" : "0",
+        "scrollLine" : "132"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

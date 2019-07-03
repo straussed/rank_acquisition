@@ -1,0 +1,32 @@
+devtools::install_github("hyenaproject/vullioud2018")
+
+
+library(hyenadata)
+library(aniDom)
+data(tblAggression)
+data(tblHyenas)
+
+
+male.nodisperse.rank <- function(id){
+  intx.with.male <- filter(tblAggression, aggressor == id | recip == id,
+                aggressor %in% filter(tblHyenas, sex == 'f')$id | aggressor == id,
+                recip %in% filter(tblHyenas, sex == 'f')$id | recip == id)
+  
+  
+  all.intx <- filter(tblAggression, aggressor %in% c(intx.with.male$aggressor, intx.with.male$recip),
+                     recip %in% c(intx.with.male$aggressor, intx.with.male$recip))
+  
+  elo_scores <- elo_scores(winners = all.intx$aggressor, losers = all.intx$recip, return.trajectories = TRUE)
+  elo_ranks <- elo_scores(winners = all.intx$aggressor, losers = all.intx$recip, return.trajectories = FALSE)
+  print(plot(elo_scores[which(row.names(elo_ranks) == id),], type = 'l'))
+}
+
+male.nodisperse.rank('mig')
+male.nodisperse.rank('foz')
+male.nodisperse.rank('pene')
+male.nodisperse.rank('ziti')
+male.nodisperse.rank('foz')
+
+
+
+

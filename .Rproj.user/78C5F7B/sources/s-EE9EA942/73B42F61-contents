@@ -1,0 +1,49 @@
+###############################################################################
+#                     Sex differences in dominance behavior                   #
+#                                                                             #
+#                            Eli Strauss July 2019                            #
+#                                                                             #
+#                                                                             #
+###############################################################################
+
+
+###### Set up workspace #####
+rm(list = ls())
+setwd('~/Documents/Research/SexAndDominance/')
+options(stringsAsFactors = FALSE)
+library(dplyr)
+load('01.cleaned.data.Rdata')
+
+
+win.diff <- c()
+#### Do males win as many interactions as females? ####
+for(l in unique(mixed.sex.litters$litter)){
+  cubs <- filter(mixed.sex.litters, litter == l)
+  first.dis <- min(cubs$disappeared)
+  if(first.dis == 'NA'){
+    first.dis <- as.Date('2099-01-01')
+  }
+  
+  
+  ## get aggressions before first.dis and not between the cubs
+  m.wins <- nrow(filter(mixed.litter.aggs, 
+                        date < first.dis, 
+                        aggressor == cubs[cubs$sex == 'm',]$id,
+                        recip != cubs[cubs$sex == 'f',]$id))
+  f.wins <- nrow(filter(mixed.litter.aggs, 
+                        date < first.dis, 
+                        aggressor == cubs[cubs$sex == 'f',]$id,
+                        recip != cubs[cubs$sex == 'm',]$id))
+  if(f.wins >0 | m.wins > 0){
+    win.diff <- c(win.diff, f.wins - m.wins)
+  }
+}
+
+win.diff.df <- data.frame(win.diff, 
+                          category = ifelse(win.diff > 0, 'female.wins.more',
+                                                      ifelse(win.diff < 0, 'male.wins.more',
+                                                             'equal')))
+pdf('plots/03.wins.by.sex.pdf', width = 6, height = 4)
+barplot(table(win.diff.df$category), main = 'Females win more interactions')
+dev.off()
+
