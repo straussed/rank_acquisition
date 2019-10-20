@@ -1,0 +1,6 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+backup_before_tidy
+data/select_tables_for_analysis.R

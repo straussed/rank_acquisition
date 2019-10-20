@@ -16,41 +16,41 @@ options(stringsAsFactors = FALSE)
 
 load('02.cohortInfo.RData')
 
-###Read data files
+###Read tidy hyena data tables
 load('data/raw_data.RData')
 
 source('00.define_functions.R')
 
-# ##remove aggressions where recipient ignores or counterattacks
-# aggsFull <- filter(tblAggression,
-#                    !response1 %in% c('ct', 'ignore'),
-#                    !response2 %in% c('ct', 'ignore'),
-#                    !response3 %in% c('ct', 'ignore'))
-# 
-# ## Add year column
-# aggsFull$year <- format(aggsFull$date, '%Y')
-# 
-# ## Add aggressor and recipient den end date and mother
-# aggsFull$agg.end <- left_join(aggsFull, cohortInfo, by = c('aggressor' = 'id'))$denend
-# aggsFull$recip.end <- left_join(aggsFull, cohortInfo, by = c('recip' = 'id'))$denend
-# aggsFull$agg.mom <- left_join(aggsFull, tblHyenas, by = c('aggressor' = 'id'))$mom
-# aggsFull$recip.mom <- left_join(aggsFull, tblHyenas, by = c('recip' = 'id'))$mom
-# 
-# #### Add aggressor and recipient rank from rank table. Rank calculated for each female yearly according to Strauss & Holekamp 2019
-# ###use individual rank if individual is in ranks table (only true for adults)
-# aggsFull$agg.rank <- left_join(aggsFull, tblFemaleRanks, by = c('year', 'aggressor' = 'id'))$rank %>% as.numeric()
-# aggsFull$recip.rank <- left_join(aggsFull, tblFemaleRanks, by = c('year', 'recip' = 'id'))$rank %>% as.numeric()
-# ###otherwise, use maternal rank by selecting rank of mother
-# aggsFull$agg.rank[is.na(aggsFull$agg.rank)] <- left_join(aggsFull[is.na(aggsFull$agg.rank),], tblFemaleRanks, by = c('year', 'agg.mom' = 'id'))$rank %>% as.numeric()
-# aggsFull$recip.rank[is.na(aggsFull$recip.rank)] <- left_join(aggsFull[is.na(aggsFull$recip.rank),], tblFemaleRanks, by = c('year', 'recip.mom' = 'id'))$rank %>% as.numeric()
-# 
-# ###agg and recip birthdates. Use minimum of date of birth and date first seen to incorporate individuals whose DOB is missing
-# aggsFull$agg.dob <- pmin(left_join(aggsFull, tblLifeHistory.long, by = c('aggressor' = 'id'))$DOB,
-#                          left_join(aggsFull, tblLifeHistory.long, by = c('aggressor' = 'id'))$DFS)
-# 
-# aggsFull$recip.dob <- pmin(left_join(aggsFull, tblLifeHistory.long, by = c('recip' = 'id'))$DOB,
-#                          left_join(aggsFull, tblLifeHistory.long, by = c('recip' = 'id'))$DFS)
-# 
+##remove aggressions where recipient ignores or counterattacks
+aggsFull <- filter(tblAggression, 
+                   !response1 %in% c('ct', 'ignore'),
+                   !response2 %in% c('ct', 'ignore'),
+                   !response3 %in% c('ct', 'ignore'))
+
+## Add year column
+aggsFull$year <- format(aggsFull$date, '%Y')
+
+## Add aggressor and recipient den end date and mother
+aggsFull$agg.end <- left_join(aggsFull, cohortInfo, by = c('aggressor' = 'id'))$denend
+aggsFull$recip.end <- left_join(aggsFull, cohortInfo, by = c('recip' = 'id'))$denend
+aggsFull$agg.mom <- left_join(aggsFull, tblHyenas, by = c('aggressor' = 'id'))$mom
+aggsFull$recip.mom <- left_join(aggsFull, tblHyenas, by = c('recip' = 'id'))$mom
+
+#### Add aggressor and recipient rank from rank table. Rank calculated for each female yearly according to Strauss & Holekamp 2019
+###use individual rank if individual is in ranks table (only true for adults)
+aggsFull$agg.rank <- left_join(aggsFull, tblFemaleRanks, by = c('year', 'aggressor' = 'id'))$rank %>% as.numeric()
+aggsFull$recip.rank <- left_join(aggsFull, tblFemaleRanks, by = c('year', 'recip' = 'id'))$rank %>% as.numeric()
+###otherwise, use maternal rank by selecting rank of mother
+aggsFull$agg.rank[is.na(aggsFull$agg.rank)] <- left_join(aggsFull[is.na(aggsFull$agg.rank),], tblFemaleRanks, by = c('year', 'agg.mom' = 'id'))$rank %>% as.numeric()
+aggsFull$recip.rank[is.na(aggsFull$recip.rank)] <- left_join(aggsFull[is.na(aggsFull$recip.rank),], tblFemaleRanks, by = c('year', 'recip.mom' = 'id'))$rank %>% as.numeric()
+
+###agg and recip birthdates. Use minimum of date of birth and date first seen to incorporate individuals whose DOB is missing
+aggsFull$agg.dob <- pmin(left_join(aggsFull, tblLifeHistory.long, by = c('aggressor' = 'id'))$DOB,
+                         left_join(aggsFull, tblLifeHistory.long, by = c('aggressor' = 'id'))$DFS)
+
+aggsFull$recip.dob <- pmin(left_join(aggsFull, tblLifeHistory.long, by = c('recip' = 'id'))$DOB,
+                         left_join(aggsFull, tblLifeHistory.long, by = c('recip' = 'id'))$DFS)
+
 
 #### Assemble relevant variables for each cub. 
 cub_dev_vars <- list()
@@ -81,9 +81,9 @@ for(i in 1:nrow(cohortInfo)){
   if(nrow(intx) < 1){next}
   
   ## Deviance score
-  end_diff <- elo_deviance(intx, id)
+  end_diff <- elo_deviance(intx, id, k = 100)
   ## Observed elo score from same interactions
-  end_obs <- elo_obs(intx, id)
+  end_obs <- elo_obs(intx, id, k = 100)
   
   ## Number of interactions
   num_intx = nrow(intx)
@@ -98,7 +98,7 @@ for(i in 1:nrow(cohortInfo)){
                  agg.rank != recip.rank)
   postgrad_intx = nrow(intx)
   if(nrow(intx)){
-    postgrad_diff <- elo_deviance(intx, id)
+    postgrad_diff <- elo_deviance(intx, id, k = 100)
   }else(postgrad_diff <- NA)
   
   ####first year of adulthood - based on interactions between focal individuals and other adults
@@ -108,7 +108,7 @@ for(i in 1:nrow(cohortInfo)){
   adult_intx <- nrow(intx)
   
   if(nrow(intx)){
-    adult_diff <- elo_deviance(intx, id)
+    adult_diff <- elo_deviance(intx, id, k = 100)
   }else(adult_diff <- NA)
 
   ### Does the mother survive to graduation or adulthood?  
@@ -149,4 +149,4 @@ for(i in 1:nrow(cohortInfo)){
 }
 cub_dev_vars <- do.call(rbind, cub_dev_vars)
 
-save(cub_dev_vars, file = '04.cub_dev_vars.RData')
+save(cub_dev_vars, file = '09.cub_dev_vars_k100.RData')

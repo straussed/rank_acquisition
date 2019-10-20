@@ -15,13 +15,12 @@ library(here)
 library(survival)
 library(survminer)
 library(viridis)
+library(coxme)
 library(lme4)
 options(stringsAsFactors = FALSE)
 
-load('04.cub_dev_vars.RData')
-
 ### Run with Elo deviance calculated with alternative K value
-#load('04.cub_dev_vars_K100.RData')
+load('09.cub_dev_vars_k100.RData')
 
 ### Color scheme for plotting
 colors <- viridis(5)[c(1,4)]
@@ -48,7 +47,7 @@ all_cub_survival <- do.call(rbind, all_cub_survival)
 
 ### Remove individuals without time, etype, end_diff, and mom_rank
 all_survival <- filter(all_cub_survival, !is.na(time), !is.na(etype), !is.na(end_diff), !is.na(mom_rank),
-                           birthdate >= "1988-06-26")
+                       birthdate >= "1988-06-26")
 
 ##### Right censor data for males that survive to 2 years old at 2####
 all_survival[!is.na(all_survival$time) & all_survival$time >= (365*2) & all_survival$sex == 'm','etype'] <- 0
@@ -119,15 +118,16 @@ MuMIn::AICc(obs.class.mod, diff.class.mod)[1,2] - MuMIn::AICc(obs.class.mod, dif
 MuMIn::AICc(end.obs.mod, diff.class.mod)[1,2] - MuMIn::AICc(end.obs.mod, diff.class.mod)[2,2]
 MuMIn::AICc(null.mod, diff.class.mod)[1,2] - MuMIn::AICc(null.mod, diff.class.mod)[2,2]
 
+
 #### Histogram of scores
-cairo_pdf('plots/5_hist_of_deviance_at_den_indpendence.pdf', 4, 4)
+cairo_pdf('plots/k100/8_hist_of_deviance_at_den_indpendence_k100.pdf', 4, 4)
 ggplot(data = all_grad, aes(x = end_diff, fill = diff_class))+
   geom_histogram(bins = 30)+theme_survminer()+
   xlab('Deviance at den independence')+
   theme(legend.position = c(0.27, 0.8))+
   scale_fill_manual(name = " ",
-                      labels = c('Elo ≥ expected', 'Elo < expected'),
-                      values = colors)+
+                    labels = c('Elo ≥ expected', 'Elo < expected'),
+                    values = colors)+
   ylab('')
 dev.off()
 
@@ -138,7 +138,6 @@ mod.without.numintx <- coxme(Surv(age, etype) ~ diff_class + mom_rank_centered +
 MuMIn::AICc(mod, mod.without.numintx)
 
 primary.mod <- mod
-summary(primary.mod)
 
 
 
@@ -146,7 +145,7 @@ p <- ggsurvplot(surv_fit(Surv(age, etype) ~ diff_class, data = all_grad), conf.i
                 xlab = 'Age (Years)', legend.labs = c('Expected and above', 'Below expected'), break.time.by = 1,
                 palette = colors, size = 1)
 
-cairo_pdf('plots/5_deviance_at_den_indpendence.pdf', 4, 4)
+cairo_pdf('plots/k100/8_deviance_at_den_indpendence_k100.pdf', 4, 4)
 ggplot(data = p$data.survplot, aes(x = time, y = surv, color = strata)) + 
   geom_step(size = 1) + 
   theme_survminer() +
@@ -166,8 +165,8 @@ MuMIn::AICc(primary.mod, primary.mod.intx)
 
 #### Deviance at adulthood
 all_grad_postgrad <- filter(all_grad, (clan %in% c('talek', 'happy.zebra') & birthdate <= (as.Date('2016-06-19') - 365*2)) |
-         (clan == 'serena.n' & birthdate <= (as.Date('2016-12-31') - 365*2)) |
-         (clan == 'serena.s' & birthdate <= (as.Date('2017-03-05') - 365*2)))
+                              (clan == 'serena.n' & birthdate <= (as.Date('2016-12-31') - 365*2)) |
+                              (clan == 'serena.s' & birthdate <= (as.Date('2017-03-05') - 365*2)))
 
 
 all_grad_postgrad$postgrad_diff_class <- cut(all_grad_postgrad$postgrad_diff, breaks = c(-1000, 0, 1000), labels = c('Elo < expected', 'Elo ≥ expected'), right = FALSE)
@@ -179,8 +178,8 @@ coxme(Surv(age, etype) ~ postgrad_diff_class + postgrad_intx_centered + mom_rank
 
 #### Deviance at 3
 all_grad_adult <- filter(all_grad, (clan %in% c('talek', 'happy.zebra') & birthdate <= (as.Date('2016-06-19') - 365*3)) |
-                              (clan == 'serena.n' & birthdate <= (as.Date('2016-12-31') - 365*3)) |
-                              (clan == 'serena.s' & birthdate <= (as.Date('2017-03-05') - 365*3)))
+                           (clan == 'serena.n' & birthdate <= (as.Date('2016-12-31') - 365*3)) |
+                           (clan == 'serena.s' & birthdate <= (as.Date('2017-03-05') - 365*3)))
 
 all_grad_adult$adult_diff_class <- cut(all_grad_adult$adult_diff, breaks = c(-1000, 0, 1000), labels = c('Elo < expected', 'Elo ≥ expected'), right = FALSE)
 all_grad_adult$adult_diff_class <- factor(all_grad_adult$adult_diff_class, levels = c('Elo ≥ expected', 'Elo < expected'))
@@ -198,16 +197,16 @@ all_grad$both_class <- paste0(all_grad$diff_class, all_grad$rank_class)
 all_grad$both_class <- factor(all_grad$both_class, levels = c('Elo ≥ expectedhigh rank', 'Elo < expectedhigh rank', 'Elo ≥ expectedlow rank', 'Elo < expectedlow rank'))
 coxme(Surv(time = age, event = etype) ~ both_class + mom_survive_to_2 + (1|clan), data = all_grad)
 p <- ggsurvplot(surv_fit(Surv(age, etype) ~ rank_class + diff_class, data = all_grad), conf.int = F, pval = F, data = all_grad, risk.table = F,
-           xlab = 'Age (Years)', break.time.by = 1,
-           color = 'strata',
-           linetype = 'strata')
+                xlab = 'Age (Years)', break.time.by = 1,
+                color = 'strata',
+                linetype = 'strata')
 
 levs <- levels(p$data.survplot$strata)
 levs
 p$data.survplot$diff_class <- ifelse(as.numeric(p$data.survplot$strata) %in% c(1,3), 'Elo ≥ expected', 'Elo < expected')
 p$data.survplot$rank_class <- ifelse(as.numeric(p$data.survplot$strata) %in% c(1,2), 'High rank', 'Low Rank')
 
-cairo_pdf('plots/5_rank_learning_commparison.pdf', 5, 5)
+cairo_pdf('plots/k100/8_rank_learning_commparison_k100.pdf', 5, 5)
 ggplot(data = p$data.survplot, aes(x = time, y = surv, color = strata, linetype = strata)) +
   geom_step(size = 1) +
   theme_survminer() +
@@ -215,8 +214,8 @@ ggplot(data = p$data.survplot, aes(x = time, y = surv, color = strata, linetype 
                       labels = c("\nHigh rank\nElo ≥ expected\n", "\nHigh rank\nElo < expected\n", "\nLow rank\nElo ≥ expected\n", "\nLow rank\nElo < expected\n"),
                       values = c(colors[1], colors[2], colors[1], colors[2])) +
   scale_linetype_manual(name = " ",
-                     labels = c("\nHigh rank\nElo ≥ expected\n", "\nHigh rank\nElo < expected\n", "\nLow rank\nElo ≥ expected\n", "\nLow rank\nElo < expected\n"),
-                     values = c(1, 1, 3, 3))+
+                        labels = c("\nHigh rank\nElo ≥ expected\n", "\nHigh rank\nElo < expected\n", "\nLow rank\nElo ≥ expected\n", "\nLow rank\nElo < expected\n"),
+                        values = c(1, 1, 3, 3))+
   theme(legend.position = c(0.75, 0.65))+
   xlab('Age (Years)')+
   ylab('Survival probability')
@@ -240,11 +239,12 @@ MuMIn::AICc(cumulative, indiv, indiv.intx)
 MuMIn::AICc(cumulative, indiv)[1,2] - MuMIn::AICc(cumulative, indiv)[2,2]
 MuMIn::AICc(indiv.intx, indiv)[1,2] - MuMIn::AICc(indiv.intx, indiv)[2,2]
 
+
 p <- ggsurvplot(surv_fit(Surv(age, etype) ~ adversity_count, data = all_grad), conf.int = F, pval = F, data = all_grad, risk.table = F,
                 xlab = 'Age (Years)', break.time.by = 1,
                 palette = colors4, size = 1)
 
-cairo_pdf(file = here('plots/5_adverse_conditions.pdf'), 4, 4)
+cairo_pdf(file = here('plots/k100/8_adverse_conditions_k100.pdf'), 4, 4)
 
 ggplot(data = p$data.survplot, aes(x = time, y = surv, color = strata)) + 
   geom_step(size = 1) + 
@@ -261,21 +261,21 @@ dev.off()
 
 #### Lifetime reproductive success
 lrs.mod <- glmer(data = filter(all_grad, etype == 1, sex == 'f'),
-              lrs ~ diff_class + rank_class + mom_survive_to_2 + num_intx_centered + (1|clan),
-              family = 'poisson')
+               lrs ~ diff_class + rank_class + mom_survive_to_2 + num_intx_centered + (1|clan),
+               family = 'poisson')
 summary(lrs.mod)
 
 lrs.mod.postgrad <- glmer(data = filter(all_grad_postgrad, etype == 1, sex == 'f'),
-              lrs ~ postgrad_diff_class + rank_class + postgrad_intx_centered + (1|clan),
-              family = 'poisson')
+                        lrs ~ postgrad_diff_class + rank_class + postgrad_intx_centered + (1|clan),
+                        family = 'poisson')
 summary(lrs.mod.postgrad)
 
 lrs.mod.adult <- glmer(data = filter(all_grad_adult, etype == 1, sex == 'f'),
-                       lrs ~ adult_diff_class + rank_class + adult_intx_centered + (1|clan),
+                     lrs ~ adult_diff_class + rank_class + adult_intx_centered + (1|clan),
                      family = 'poisson')
 summary(lrs.mod.adult)
 
-cairo_pdf(file = here('plots/5_lrs.pdf'), 6, 4)
+cairo_pdf(file = here('plots/k100/8_lrs_k100.pdf'), 6, 4)
 ggplot(data = filter(all_grad, etype == 1, sex == 'f'), aes(x = both_class, y = lrs, color = both_class, linetype = both_class, shape = both_class))+
   geom_boxplot(outlier.shape = NA)+
   geom_jitter(height = 0, width = 0.3, alpha = 0.7)+
@@ -287,9 +287,9 @@ ggplot(data = filter(all_grad, etype == 1, sex == 'f'), aes(x = both_class, y = 
   scale_linetype_manual(name = " ",
                         labels = c("\nHigh rank\nElo ≥ expected\n", "\nHigh rank\nElo < expected\n", "\nLow rank\nElo ≥ expected\n", "\nLow rank\nElo < expected\n"),
                         values = c(1, 1, 3, 3))+
-scale_shape_manual(name = " ",
-                      labels = c("\nHigh rank\nElo ≥ expected\n", "\nHigh rank\nElo < expected\n", "\nLow rank\nElo ≥ expected\n", "\nLow rank\nElo < expected\n"),
-                      values = c(19, 17, 19, 17))+
+  scale_shape_manual(name = " ",
+                     labels = c("\nHigh rank\nElo ≥ expected\n", "\nHigh rank\nElo < expected\n", "\nLow rank\nElo ≥ expected\n", "\nLow rank\nElo < expected\n"),
+                     values = c(19, 17, 19, 17))+
   ylab('Lifetime reproductive success')
 dev.off()
 
@@ -297,7 +297,7 @@ dev.off()
 
 #### Save data
 rank.acquisition <- all_grad
-save(rank.acquisition, file = '06.rank.acquisition.RData')
+save(rank.acquisition, file = '11.rank.acquisition.k100.RData')
 
 
 
@@ -331,7 +331,7 @@ p$data.survplot <- rbind(p$data.survplot,
                                     strata = 'diff_class=Elo < expected',
                                     diff_class = NA))
 
-cairo_pdf(file = here('plots/5_survival_35.pdf'), 4, 4)
+cairo_pdf(file = here('plots/k100/8_survival_35_k100.pdf'), 4, 4)
 ggplot(data = p$data.survplot, aes(x = time, y = surv, color = strata)) + 
   geom_step(size = 1) + 
   theme_survminer() +
