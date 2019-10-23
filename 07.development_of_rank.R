@@ -14,6 +14,8 @@ library(aniDom)
 library(here)
 library(ggplot2)
 library(survminer)
+library(viridis)
+library(ggpubr)
 options(stringsAsFactors = FALSE)
 
 set.seed(1989)
@@ -140,8 +142,8 @@ mri.table <- table(rank.acquisition[,c('mri', 'diff_class')])
 chisq.test(mri.table)
 
 
-cairo_pdf('plots/6_mri.pdf', 3.5, 3.5)
-ggplot(first.ranks, aes(x = mom.rank, y = first.rank, col = diff_class)) +
+#cairo_pdf('plots/6_mri.pdf', 3.5, 3.5)
+mri <- ggplot(first.ranks, aes(x = mom.rank, y = first.rank, col = diff_class)) +
   geom_point(alpha = 0.7) +
   theme_survminer()+
   geom_abline(intercept = 0, slope = 1, linetype = 2)+
@@ -153,7 +155,26 @@ ggplot(first.ranks, aes(x = mom.rank, y = first.rank, col = diff_class)) +
   ylab('Rank at onset of adulthood')+
   xlab('Mother\'s rank')+
   theme(legend.position = c(0.35,0.9), legend.key.size = unit(4, 'pt'))
+  # geom_text(data = data.frame(), aes(-0.9, 1, label = 'b)'), inherit.aes = FALSE,
+  #           fontface = 2)
+#dev.off()
+
+#### Histogram of scores
+#cairo_pdf('plots/5_hist_of_deviance_at_den_indpendence.pdf', 4, 4)
+hist <- ggplot(data = rank.acquisition, aes(x = end_diff, fill = diff_class))+
+  geom_histogram(bins = 30)+theme_survminer()+
+  xlab('Deviance at den independence')+
+  theme(legend.position = c(0.27, 0.8))+
+  scale_fill_manual(name = " ",
+                      labels = c('Elo ≥ expected', 'Elo < expected'),
+                      values = colors)+
+  ylab('')
+  # geom_text(data = data.frame(), aes(-315, 170, label = 'a)'), inherit.aes = FALSE,
+  #           fontface = 2)
+#dev.off()
+
+cairo_pdf('plots/figure_1.pdf', 8, 4)
+ggarrange(hist, mri, labels = c('a)', 'b)'))
 dev.off()
 
-   
    

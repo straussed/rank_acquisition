@@ -119,17 +119,18 @@ MuMIn::AICc(obs.class.mod, diff.class.mod)[1,2] - MuMIn::AICc(obs.class.mod, dif
 MuMIn::AICc(end.obs.mod, diff.class.mod)[1,2] - MuMIn::AICc(end.obs.mod, diff.class.mod)[2,2]
 MuMIn::AICc(null.mod, diff.class.mod)[1,2] - MuMIn::AICc(null.mod, diff.class.mod)[2,2]
 
-#### Histogram of scores
-cairo_pdf('plots/5_hist_of_deviance_at_den_indpendence.pdf', 4, 4)
-ggplot(data = all_grad, aes(x = end_diff, fill = diff_class))+
-  geom_histogram(bins = 30)+theme_survminer()+
-  xlab('Deviance at den independence')+
-  theme(legend.position = c(0.27, 0.8))+
-  scale_fill_manual(name = " ",
-                      labels = c('Elo ≥ expected', 'Elo < expected'),
-                      values = colors)+
-  ylab('')
-dev.off()
+### Moved to 7.development_of_rank.R to combine with MRI plot for Figure 1
+# #### Histogram of scores
+# cairo_pdf('plots/5_hist_of_deviance_at_den_indpendence.pdf', 4, 4)
+# ggplot(data = all_grad, aes(x = end_diff, fill = diff_class))+
+#   geom_histogram(bins = 30)+theme_survminer()+
+#   xlab('Deviance at den independence')+
+#   theme(legend.position = c(0.27, 0.8))+
+#   scale_fill_manual(name = " ",
+#                       labels = c('Elo ≥ expected', 'Elo < expected'),
+#                       values = colors)+
+#   ylab('')
+# dev.off()
 
 
 #### Build primary model ####
