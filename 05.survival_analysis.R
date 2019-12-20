@@ -14,11 +14,14 @@ library(dplyr)
 library(here)
 library(survival)
 library(survminer)
+library(coxme)
 library(viridis)
+library(sjPlot)
 library(lme4)
 options(stringsAsFactors = FALSE)
 
 load('04.cub_dev_vars.RData')
+source('00.define_functions.R')
 
 ### Run with Elo deviance calculated with alternative K value
 #load('04.cub_dev_vars_K100.RData')
@@ -87,7 +90,6 @@ sum(!is.na(all_grad$adult_diff))
 #### Center variables
 all_grad$end_diff_centered <- scale(all_grad$end_diff)
 all_grad$num_intx_centered <- scale(all_grad$num_intx)
-all_grad$mom_rank_centered <- scale(all_grad$mom_rank)
 all_grad$end_obs_centered <- scale(all_grad$end_obs)
 all_grad$postgrad_diff_centered <- scale(all_grad$postgrad_diff)
 all_grad$adult_diff_centered <- scale(all_grad$adult_diff)
@@ -96,7 +98,7 @@ all_grad$adult_diff_centered <- scale(all_grad$adult_diff)
 all_grad$diff_class <- cut(all_grad$end_diff, breaks = c(-1000, 0, 1000), labels = c('Elo < expected', 'Elo ≥ expected'), right = FALSE)
 all_grad$diff_class <- factor(all_grad$diff_class, levels = c('Elo ≥ expected', 'Elo < expected'))
 
-all_grad$rank_class <- cut(all_grad$mom_rank, breaks = c(-1000, 0, 1000), labels = c('low rank', 'high rank'))
+all_grad$rank_class <- cut(all_grad$mom_rank, breaks = c(-1.1, 0, 1.1), labels = c('low rank', 'high rank'))
 all_grad$rank_class <- factor(all_grad$rank_class, levels = c('high rank', 'low rank'))
 
 all_grad$obs_class <- cut(all_grad$end_obs, breaks = c(-1000, mean(all_grad$end_obs), 1000), labels = c('below average', 'above average'))
@@ -106,12 +108,12 @@ all_grad$obs_class <- factor(all_grad$obs_class, levels = c('above average', 'be
 ## Models include number of interactions, rank class (high/low), mom survive to 2
 
 ##
-elo.dev.mod <- coxme(Surv(age, etype) ~ end_diff_centered + num_intx_centered + rank_class + mom_survive_to_2 + (1|clan), data = all_grad)
-diff.class.mod <- coxme(Surv(age, etype) ~ diff_class + num_intx_centered + rank_class + mom_survive_to_2 + (1|clan), data = all_grad)
-end.obs.mod <- coxme(Surv(age, etype) ~ end_obs_centered + num_intx_centered + rank_class + mom_survive_to_2 + (1|clan), data = all_grad)
-obs.class.mod <- coxme(Surv(age, etype) ~ obs_class + num_intx_centered + rank_class + mom_survive_to_2 + (1|clan), data = all_grad)
-both.class.mod <- coxme(Surv(age, etype) ~ diff_class + obs_class + num_intx_centered + rank_class + mom_survive_to_2 + (1|clan), data = all_grad)
-null.mod <- coxme(Surv(age, etype) ~ num_intx_centered + rank_class + mom_survive_to_2 + (1|clan), data = all_grad)
+elo.dev.mod <- coxme(Surv(age, etype) ~ end_diff_centered + num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad)
+diff.class.mod <- coxme(Surv(age, etype) ~ diff_class + num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad)
+end.obs.mod <- coxme(Surv(age, etype) ~ end_obs_centered + num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad)
+obs.class.mod <- coxme(Surv(age, etype) ~ obs_class + num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad)
+both.class.mod <- coxme(Surv(age, etype) ~ diff_class + obs_class + num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad)
+null.mod <- coxme(Surv(age, etype) ~ num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad)
 MuMIn::AICc(elo.dev.mod, end.obs.mod, obs.class.mod, both.class.mod, diff.class.mod, null.mod)
 
 MuMIn::AICc(elo.dev.mod, diff.class.mod)[1,2] - MuMIn::AICc(elo.dev.mod, diff.class.mod)[2,2]
@@ -119,28 +121,20 @@ MuMIn::AICc(obs.class.mod, diff.class.mod)[1,2] - MuMIn::AICc(obs.class.mod, dif
 MuMIn::AICc(end.obs.mod, diff.class.mod)[1,2] - MuMIn::AICc(end.obs.mod, diff.class.mod)[2,2]
 MuMIn::AICc(null.mod, diff.class.mod)[1,2] - MuMIn::AICc(null.mod, diff.class.mod)[2,2]
 
-### Moved to 7.development_of_rank.R to combine with MRI plot for Figure 1
-# #### Histogram of scores
-# cairo_pdf('plots/5_hist_of_deviance_at_den_indpendence.pdf', 4, 4)
-# ggplot(data = all_grad, aes(x = end_diff, fill = diff_class))+
-#   geom_histogram(bins = 30)+theme_survminer()+
-#   xlab('Deviance at den independence')+
-#   theme(legend.position = c(0.27, 0.8))+
-#   scale_fill_manual(name = " ",
-#                       labels = c('Elo ≥ expected', 'Elo < expected'),
-#                       values = colors)+
-#   ylab('')
-# dev.off()
-
 
 #### Build primary model ####
-mod <- coxme(Surv(age, etype) ~ diff_class + num_intx_centered + rank_class + mom_survive_to_2 + (1|clan), data = all_grad)
-mod.without.numintx <- coxme(Surv(age, etype) ~ diff_class + mom_rank_centered + mom_survive_to_2 + (1|clan), data = all_grad)
+mod <- coxme(Surv(age, etype) ~ diff_class + num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad)
+mod.without.numintx <- coxme(Surv(age, etype) ~ diff_class + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad)
 MuMIn::AICc(mod, mod.without.numintx)
 
 primary.mod <- mod
 summary(primary.mod)
 
+table1 <- cox.tab(primary.mod, fixef.labs = c('Elo deviance (< expected)',
+                                              'Number of interactions',
+                                              'Maternal rank',
+                                              'Maternal death before adulthood (dead)'))
+table1.caption <- c('Table 1. Cox mixed-effects model of survival as a function of Elo-deviance at den independence and other covariates')
 
 
 p <- ggsurvplot(surv_fit(Surv(age, etype) ~ diff_class, data = all_grad), conf.int = F, pval = F, data = all_grad, risk.table = F,
@@ -161,8 +155,21 @@ dev.off()
 
 
 #### Are there interaction effects? ####   # no
-primary.mod.intx <- coxme(Surv(age, etype) ~ diff_class * rank_class + rank_class * mom_survive_to_2 + diff_class*mom_survive_to_2 + num_intx_centered + (1|clan), data = all_grad)
+primary.mod.intx <- coxme(Surv(age, etype) ~ diff_class * mom_rank + mom_rank * mom_survive_to_2 + diff_class*mom_survive_to_2 + num_intx_centered + (1|clan), data = all_grad)
 MuMIn::AICc(primary.mod, primary.mod.intx)
+
+
+### Model with first adult rank instead of maternal rank ###
+mod.first.rank <- coxme(Surv(age, etype) ~ diff_class + num_intx_centered + first_adult_rank + mom_survive_to_2 + (1|clan), data = all_grad)
+summary(mod.first.rank)
+
+table2 <- cox.tab(mod.first.rank, fixef.labs = c('Elo deviance (< expected)',
+                                              'Number of interactions',
+                                              'First adult rank',
+                                              'Maternal death before adulthood (dead)'))
+table2.caption <- c('Table 2. Cox mixed-effects model of survival as a function of Elo-deviance at den independence using first adult rank rather than maternal rank')
+
+tab_df(table2[[1]], title = table2.caption, footnote = table2[[2]], show.footnote = TRUE)
 
 
 #### Deviance at adulthood
@@ -175,7 +182,8 @@ all_grad_postgrad$postgrad_diff_class <- cut(all_grad_postgrad$postgrad_diff, br
 all_grad_postgrad$postgrad_diff_class <- factor(all_grad_postgrad$postgrad_diff_class, levels = c('Elo ≥ expected', 'Elo < expected'))
 all_grad_postgrad$postgrad_intx_centered <- scale(all_grad_postgrad$postgrad_intx)
 
-coxme(Surv(age, etype) ~ postgrad_diff_class + postgrad_intx_centered + mom_rank_centered + (1|clan), data = all_grad_postgrad)
+coxme(Surv(age, etype) ~ postgrad_diff_class + postgrad_intx_centered + mom_rank + (1|clan), data = all_grad_postgrad) %>%
+  cox.tab()
 
 
 #### Deviance at 3
@@ -187,7 +195,8 @@ all_grad_adult$adult_diff_class <- cut(all_grad_adult$adult_diff, breaks = c(-10
 all_grad_adult$adult_diff_class <- factor(all_grad_adult$adult_diff_class, levels = c('Elo ≥ expected', 'Elo < expected'))
 all_grad_adult$adult_intx_centered <- scale(all_grad_adult$adult_intx)
 
-coxme(Surv(age, etype) ~ adult_diff_class + adult_intx_centered + mom_rank_centered + (1|clan), data = all_grad_adult)
+coxme(Surv(age, etype) ~ adult_diff_class + adult_intx_centered + mom_rank + (1|clan), data = all_grad_adult) %>%
+  cox.tab()
 
 
 ##### Are deviance measures at different life-history stages correlated?
@@ -225,6 +234,8 @@ ggplot(data = p$data.survplot, aes(x = time, y = surv, color = strata, linetype 
 dev.off()
 
 
+
+
 ### Are adverse effects cumulative?
 all_grad$adversity_count <- 0
 all_grad[all_grad$diff_class == 'Elo < expected',]$adversity_count <- all_grad[all_grad$diff_class == 'Elo < expected',]$adversity_count + 1
@@ -234,6 +245,12 @@ all_grad[all_grad$mom_survive_to_2 == 'dead',]$adversity_count <- all_grad[all_g
 
 
 cumulative <- coxme(Surv(time = age, event = etype) ~ adversity_count + (1|clan), data = all_grad)
+
+table3 <- cox.tab(cumulative, fixef.labs = c('Number of adverse conditions'))
+table3.caption <- c('Table 3. Cox mixed-effects model of survival as a function of the number of adverse conditions')
+
+
+
 indiv <- coxme(Surv(time = age, event = etype) ~ mom_survive_to_2 + rank_class + diff_class + (1|clan), data = all_grad)
 indiv.intx <- coxme(Surv(time = age, event = etype) ~ mom_survive_to_2 * rank_class * diff_class + (1|clan), data = all_grad)
 
@@ -260,19 +277,41 @@ ggplot(data = p$data.survplot, aes(x = time, y = surv, color = strata)) +
 dev.off()
 
 
-#### Lifetime reproductive success
-lrs.mod <- glmer(data = filter(all_grad, etype == 1, sex == 'f'),
-              lrs ~ diff_class + rank_class + mom_survive_to_2 + num_intx_centered + (1|clan),
+#### Lifetime reproductive success - add lifespan as requested by reviewers
+lrs.dat <-filter(all_grad, etype == 1, sex == 'f')
+lrs.dat$time.scaled <- scale(lrs.dat$time)
+lrs.mod <- glmer(data = lrs.dat,
+              lrs ~ diff_class + num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan),
               family = 'poisson')
 summary(lrs.mod)
 
+table4 <- glm.tab(lrs.mod, fixef.labs = c('Intercept',
+                                            'Elo deviance (< expected)',
+                                            'Number of interactions',
+                                            'Maternal rank',
+                                            'Maternal death before adulthood (dead)'))
+table4.caption <- c('Table 4. Poisson GLMM of lifetime reproductive success as a function of Elo-deviance at den independence and other covariates')
+
+lrs.mod.lifespan <- glmer(data = lrs.dat,
+                 lrs ~ diff_class + num_intx_centered + mom_rank + mom_survive_to_2 + time.scaled + (1|clan),
+                 family = 'poisson')
+summary(lrs.mod.lifespan)
+
+table5 <- glm.tab(lrs.mod.lifespan, fixef.labs = c('Intercept',
+                                                    'Elo deviance (< expected)',
+                                                    'Number of interactions',
+                                                    'Maternal rank',
+                                                    'Maternal death before adulthood (dead)',
+                                                    'Lifespan'))
+table5.caption <- c('Table 5. Poisson GLMM of lifetime reproductive success as a function of Elo-deviance at den independence, lifespan, and other covariates')
+
 lrs.mod.postgrad <- glmer(data = filter(all_grad_postgrad, etype == 1, sex == 'f'),
-              lrs ~ postgrad_diff_class + rank_class + postgrad_intx_centered + (1|clan),
+              lrs ~ postgrad_diff_class + mom_rank + postgrad_intx_centered + (1|clan),
               family = 'poisson')
 summary(lrs.mod.postgrad)
 
 lrs.mod.adult <- glmer(data = filter(all_grad_adult, etype == 1, sex == 'f'),
-                       lrs ~ adult_diff_class + rank_class + adult_intx_centered + (1|clan),
+                       lrs ~ adult_diff_class + mom_rank + adult_intx_centered + (1|clan),
                      family = 'poisson')
 summary(lrs.mod.adult)
 
@@ -301,45 +340,9 @@ rank.acquisition <- all_grad
 save(rank.acquisition, file = '06.rank.acquisition.RData')
 
 
+#### Output tables ####
+tab_dfs(x = list(table1[[1]], table2[[1]], table3[[1]], table4[[1]], table5[[1]]),
+        titles = list(table1.caption, table2.caption, table3.caption, table4.caption, table5.caption),
+        footnotes = list(table1[[2]], table2[[2]], table3[[2]], table4[[2]], table5[[2]]),
+        show.footnote = TRUE, file = '~/Documents/Writing/Papers/2019 StraussShizukaHolekamp Juvenile rank acquisition influences fitness independent of adult rank/Revised Submission/SupplementalMaterials2_Tables.doc')
 
-#### Does this effect still exist for cubs that survive to 35 months old?
-all_grad_35 <- filter(all_grad, time >= 35*30.4375)
-mod35 <- coxme(Surv(age, etype) ~ diff_class + num_intx_centered + rank_class + (1|clan), data = all_grad_35)
-
-p <- ggsurvplot(surv_fit(Surv(age, etype) ~ diff_class, data = all_grad_35), conf.int = F, pval = F, data = all_grad_35, risk.table = F,
-                xlab = 'Age (Years)', legend.labs = c('Expected and above', 'Below expected'), break.time.by = 1,
-                palette = colors, size = 1)
-
-p$data.survplot <- rbind(p$data.survplot,
-                         data.frame(time = 0, 
-                                    n.risk = NA, 
-                                    n.event = NA, 
-                                    n.censor = NA,
-                                    surv = 1,
-                                    std.err = NA,
-                                    upper = NA,
-                                    lower = NA,
-                                    strata = 'diff_class=Elo ≥ expected',
-                                    diff_class = NA),
-                         data.frame(time = 0, 
-                                    n.risk = NA, 
-                                    n.event = NA, 
-                                    n.censor = NA,
-                                    surv = 1,
-                                    std.err = NA,
-                                    upper = NA,
-                                    lower = NA,
-                                    strata = 'diff_class=Elo < expected',
-                                    diff_class = NA))
-
-cairo_pdf(file = here('plots/5_survival_35.pdf'), 4, 4)
-ggplot(data = p$data.survplot, aes(x = time, y = surv, color = strata)) + 
-  geom_step(size = 1) + 
-  theme_survminer() +
-  theme(legend.position = c(0.7, 0.8))+
-  xlab('Age (Years)')+
-  ylab('Survival probability')+
-  scale_colour_manual(name = " ",
-                      labels = c('Elo ≥ expected', 'Elo < expected'),
-                      values = colors)
-dev.off()

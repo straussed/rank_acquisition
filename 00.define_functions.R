@@ -89,3 +89,54 @@ elo_deviance_traj <- function(intx, id, k = 20){
   elo_expected <- aniDom::elo_scores(winners = wins_expected$exp.winner, losers = wins_expected$exp.loser, return.trajectories = T, identities = idents, K = k)
   return(elo_observed[1,] - elo_expected[1,])
 }
+
+
+### Function for producing tables of Cox hazards models
+cox.tab <- function(mod, fixef.labs = NULL){
+  if(is.null(fixef.labs))
+    fixef.labs <- names(fixef(mod))
+  hr <- jstable::coxme.display(mod, dec = 3)
+  hr <- as.data.frame(hr$table)
+  n = mod$n[2]
+  
+  if(length(fixef.labs) == 1){
+    hr.name <- ''
+  }else{
+    hr.name <- 'adj. '
+  }
+  df <- data.frame(Predictor = fixef.labs,
+                         Estimate = round(fixef(mod), 3),
+                         SE = round(diag(sqrt(vcov(mod))), 3),
+                         "Hazard Ratio\n(95% CI)" = hr[,paste0(hr.name,"HR(95%CI)")],
+                         "P value" = hr[,paste0(hr.name,"P value")], check.names = FALSE, row.names = NULL)
+              
+        footnote = paste0("n = ", n, ';',
+              '       Random effect of clan (variance) = ', round(VarCorr(mod)$clan, 4))
+  
+  # ran.df <- data.frame("Group" = names(ranef(mod)),
+  #                      Variable = 'Intercept',
+  #                      "Std Dev" = round(sqrt(VarCorr(mod)$clan), 3),
+  #                      Variance = round(VarCorr(mod)$clan, 3),check.names = FALSE, row.names = NULL)
+  #                  
+  return(list(df, footnote))
+}
+
+
+glm.tab <- function(mod, fixef.labs = NULL){
+  if(is.null(fixef.labs))
+    fixef.labs <- names(fixef(mod))
+  s <- summary(mod)
+  n = nrow(mod@frame)
+  
+  df <- data.frame(Predictor = fixef.labs,
+                   Estimate = round(fixef(mod), 3),
+                   SE = round(diag(sqrt(vcov(mod))), 3),
+                   "P value" = round(s$coefficients[,4], 3), check.names = FALSE, row.names = NULL)
+  
+  footnote = paste0("n = ", n, ';',
+                    '       Random effect of clan (variance) = ', round(VarCorr(mod)$clan[1], 4))
+  
+      
+  return(list(df, footnote))
+}
+
