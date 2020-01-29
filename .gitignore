@@ -4,3 +4,4 @@
 .Ruserdata
 backup_before_tidy
 data/select_tables_for_analysis.R
+data/.raw_data.RData.icloud

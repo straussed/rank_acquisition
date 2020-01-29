@@ -19,6 +19,7 @@ library(viridis)
 library(sjPlot)
 library(lme4)
 options(stringsAsFactors = FALSE)
+options(scipen = 8)
 
 load('04.cub_dev_vars.RData')
 source('00.define_functions.R')
@@ -130,12 +131,25 @@ MuMIn::AICc(mod, mod.without.numintx)
 primary.mod <- mod
 summary(primary.mod)
 
+
 table1 <- cox.tab(primary.mod, fixef.labs = c('Elo deviance (< expected)',
                                               'Number of interactions',
                                               'Maternal rank',
                                               'Maternal death before adulthood (dead)'))
 table1.caption <- c('Table 1. Cox mixed-effects model of survival as a function of Elo-deviance at den independence and other covariates')
 
+
+### Primary model with only females for supplemental material #### 
+all_grad_females <- filter(all_grad, sex == 'f')
+mod.female <- coxme(Surv(age, etype) ~ diff_class + num_intx_centered + mom_rank + mom_survive_to_2 + (1|clan), data = all_grad_females)
+summary(mod.female)
+
+table2 <- cox.tab(mod.female, fixef.labs = c('Elo deviance (< expected)',
+                                             'Number of interactions',
+                                             'Maternal rank',
+                                             'Maternal death before adulthood (dead)'))
+table2.caption <-  c('Table 2. Cox mixed-effects model of survival in females as a function of Elo-deviance at den independence and other covariates')
+#########
 
 p <- ggsurvplot(surv_fit(Surv(age, etype) ~ diff_class, data = all_grad), conf.int = F, pval = F, data = all_grad, risk.table = F,
                 xlab = 'Age (Years)', legend.labs = c('Expected and above', 'Below expected'), break.time.by = 1,
@@ -163,13 +177,11 @@ MuMIn::AICc(primary.mod, primary.mod.intx)
 mod.first.rank <- coxme(Surv(age, etype) ~ diff_class + num_intx_centered + first_adult_rank + mom_survive_to_2 + (1|clan), data = all_grad)
 summary(mod.first.rank)
 
-table2 <- cox.tab(mod.first.rank, fixef.labs = c('Elo deviance (< expected)',
+table3 <- cox.tab(mod.first.rank, fixef.labs = c('Elo deviance (< expected)',
                                               'Number of interactions',
                                               'First adult rank',
                                               'Maternal death before adulthood (dead)'))
-table2.caption <- c('Table 2. Cox mixed-effects model of survival as a function of Elo-deviance at den independence using first adult rank rather than maternal rank')
-
-tab_df(table2[[1]], title = table2.caption, footnote = table2[[2]], show.footnote = TRUE)
+table3.caption <- c('Table 3. Cox mixed-effects model of survival as a function of Elo-deviance at den independence using first adult rank rather than maternal rank')
 
 
 #### Deviance at adulthood
@@ -246,8 +258,8 @@ all_grad[all_grad$mom_survive_to_2 == 'dead',]$adversity_count <- all_grad[all_g
 
 cumulative <- coxme(Surv(time = age, event = etype) ~ adversity_count + (1|clan), data = all_grad)
 
-table3 <- cox.tab(cumulative, fixef.labs = c('Number of adverse conditions'))
-table3.caption <- c('Table 3. Cox mixed-effects model of survival as a function of the number of adverse conditions')
+table4 <- cox.tab(cumulative, fixef.labs = c('Number of adverse conditions'))
+table4.caption <- c('Table 4. Cox mixed-effects model of survival as a function of the number of adverse conditions')
 
 
 
@@ -285,25 +297,25 @@ lrs.mod <- glmer(data = lrs.dat,
               family = 'poisson')
 summary(lrs.mod)
 
-table4 <- glm.tab(lrs.mod, fixef.labs = c('Intercept',
+table5 <- glm.tab(lrs.mod, fixef.labs = c('Intercept',
                                             'Elo deviance (< expected)',
                                             'Number of interactions',
                                             'Maternal rank',
                                             'Maternal death before adulthood (dead)'))
-table4.caption <- c('Table 4. Poisson GLMM of lifetime reproductive success as a function of Elo-deviance at den independence and other covariates')
+table5.caption <- c('Table 5. Poisson GLMM of lifetime reproductive success as a function of Elo-deviance at den independence and other covariates')
 
 lrs.mod.lifespan <- glmer(data = lrs.dat,
                  lrs ~ diff_class + num_intx_centered + mom_rank + mom_survive_to_2 + time.scaled + (1|clan),
                  family = 'poisson')
 summary(lrs.mod.lifespan)
 
-table5 <- glm.tab(lrs.mod.lifespan, fixef.labs = c('Intercept',
+table6 <- glm.tab(lrs.mod.lifespan, fixef.labs = c('Intercept',
                                                     'Elo deviance (< expected)',
                                                     'Number of interactions',
                                                     'Maternal rank',
                                                     'Maternal death before adulthood (dead)',
                                                     'Lifespan'))
-table5.caption <- c('Table 5. Poisson GLMM of lifetime reproductive success as a function of Elo-deviance at den independence, lifespan, and other covariates')
+table6.caption <- c('Table 6. Poisson GLMM of lifetime reproductive success as a function of Elo-deviance at den independence, lifespan, and other covariates')
 
 lrs.mod.postgrad <- glmer(data = filter(all_grad_postgrad, etype == 1, sex == 'f'),
               lrs ~ postgrad_diff_class + mom_rank + postgrad_intx_centered + (1|clan),
@@ -341,8 +353,8 @@ save(rank.acquisition, file = '06.rank.acquisition.RData')
 
 
 #### Output tables ####
-tab_dfs(x = list(table1[[1]], table2[[1]], table3[[1]], table4[[1]], table5[[1]]),
-        titles = list(table1.caption, table2.caption, table3.caption, table4.caption, table5.caption),
-        footnotes = list(table1[[2]], table2[[2]], table3[[2]], table4[[2]], table5[[2]]),
-        show.footnote = TRUE, file = '~/Documents/Writing/Papers/2019 StraussShizukaHolekamp Juvenile rank acquisition influences fitness independent of adult rank/Revised Submission/SupplementalMaterials2_Tables.doc')
+tab_dfs(x = list(table1[[1]], table2[[1]], table3[[1]], table4[[1]], table5[[1]], table6[[1]]),
+        titles = list(table1.caption, table2.caption, table3.caption, table4.caption, table5.caption, table6.caption),
+        footnotes = list(table1[[2]], table2[[2]], table3[[2]], table4[[2]], table5[[2]], table6[[2]]),
+        show.footnote = TRUE, file = '~/Documents/Writing/Papers/2019 StraussShizukaHolekamp Juvenile rank acquisition influences fitness independent of adult rank/SecondRevision/SupplementalMaterials2_Tables.doc')
 

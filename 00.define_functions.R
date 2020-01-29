@@ -97,6 +97,8 @@ cox.tab <- function(mod, fixef.labs = NULL){
     fixef.labs <- names(fixef(mod))
   hr <- jstable::coxme.display(mod, dec = 3)
   hr <- as.data.frame(hr$table)
+  
+  s <- summary(mod)
   n = mod$n[2]
   
   if(length(fixef.labs) == 1){
@@ -131,7 +133,10 @@ glm.tab <- function(mod, fixef.labs = NULL){
   df <- data.frame(Predictor = fixef.labs,
                    Estimate = round(fixef(mod), 3),
                    SE = round(diag(sqrt(vcov(mod))), 3),
-                   "P value" = round(s$coefficients[,4], 3), check.names = FALSE, row.names = NULL)
+                   "P value" = round(s$coefficients[,4], 4), check.names = FALSE, row.names = NULL)
+  
+  df[,'P value'][s$coefficients[,4] < 0.0001] <- '< 0.0001'
+  
   
   footnote = paste0("n = ", n, ';',
                     '       Random effect of clan (variance) = ', round(VarCorr(mod)$clan[1], 4))
