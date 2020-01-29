@@ -27,38 +27,6 @@ source('00.define_functions.R')
 colors <- viridis(5)[c(1,4)]
 
 
-# 
-# ##remove aggressions where recipient ignores or counterattacks
-# aggsFull <- filter(tblAggression, 
-#                    !response1 %in% c('ct', 'ignore'),
-#                    !response2 %in% c('ct', 'ignore'),
-#                    !response3 %in% c('ct', 'ignore'))
-# 
-# aggsFull$year <- format(aggsFull$date, '%Y')
-# 
-# aggsFull$agg.end <- left_join(aggsFull, cohortInfo, by = c('aggressor' = 'id'))$DenEnd
-# aggsFull$recip.end <- left_join(aggsFull, cohortInfo, by = c('recip' = 'id'))$DenEnd
-# aggsFull$agg.mom <- left_join(aggsFull, tblHyenas, by = c('aggressor' = 'id'))$mom
-# aggsFull$recip.mom <- left_join(aggsFull, tblHyenas, by = c('recip' = 'id'))$mom
-# 
-# ###use individual rank if individual rank is in ranks table
-# aggsFull$agg.rank <- left_join(aggsFull, tblFemaleRanks, by = c('year', 'aggressor' = 'id'))$rank %>% as.numeric()
-# aggsFull$recip.rank <- left_join(aggsFull, tblFemaleRanks, by = c('year', 'recip' = 'id'))$rank %>% as.numeric()
-# 
-# ###otherwise, use moms rank
-# aggsFull$agg.rank[is.na(aggsFull$agg.rank)] <- left_join(aggsFull[is.na(aggsFull$agg.rank),], tblFemaleRanks, by = c('year', 'agg.mom' = 'id'))$rank %>% as.numeric()
-# aggsFull$recip.rank[is.na(aggsFull$recip.rank)] <- left_join(aggsFull[is.na(aggsFull$recip.rank),], tblFemaleRanks, by = c('year', 'recip.mom' = 'id'))$rank %>% as.numeric()
-# 
-# ###agg and recip birthdates - if no birthdate, treat first seen as 'birthdate'
-# aggsFull$agg.dob <- pmin(left_join(aggsFull, tblLifeHistory.long, by = c('aggressor' = 'id'))$DOB,
-#                          left_join(aggsFull, tblLifeHistory.long, by = c('aggressor' = 'id'))$DFS)
-# 
-# aggsFull$recip.dob <- pmin(left_join(aggsFull, tblLifeHistory.long, by = c('recip' = 'id'))$DOB,
-#                            left_join(aggsFull, tblLifeHistory.long, by = c('recip' = 'id'))$DFS)
-# 
-
-
-
 ##### Rank learning - calculate Elo deviance every month
 rank_learning_builder <- list()
 counter <- 1

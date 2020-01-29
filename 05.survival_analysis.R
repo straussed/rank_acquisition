@@ -24,9 +24,6 @@ options(scipen = 8)
 load('04.cub_dev_vars.RData')
 source('00.define_functions.R')
 
-### Run with Elo deviance calculated with alternative K value
-#load('04.cub_dev_vars_K100.RData')
-
 ### Color scheme for plotting
 colors <- viridis(5)[c(1,4)]
 colors4 <- viridis(5)[c(1:4)]

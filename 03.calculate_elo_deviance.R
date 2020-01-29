@@ -21,37 +21,6 @@ load('data/raw_data.RData')
 
 source('00.define_functions.R')
 
-# ##remove aggressions where recipient ignores or counterattacks
-# aggsFull <- filter(tblAggression,
-#                    !response1 %in% c('ct', 'ignore'),
-#                    !response2 %in% c('ct', 'ignore'),
-#                    !response3 %in% c('ct', 'ignore'))
-# 
-# ## Add year column
-# aggsFull$year <- format(aggsFull$date, '%Y')
-# 
-# ## Add aggressor and recipient den end date and mother
-# aggsFull$agg.end <- left_join(aggsFull, cohortInfo, by = c('aggressor' = 'id'))$denend
-# aggsFull$recip.end <- left_join(aggsFull, cohortInfo, by = c('recip' = 'id'))$denend
-# aggsFull$agg.mom <- left_join(aggsFull, tblHyenas, by = c('aggressor' = 'id'))$mom
-# aggsFull$recip.mom <- left_join(aggsFull, tblHyenas, by = c('recip' = 'id'))$mom
-# 
-# #### Add aggressor and recipient rank from rank table. Rank calculated for each female yearly according to Strauss & Holekamp 2019
-# ###use individual rank if individual is in ranks table (only true for adults)
-# aggsFull$agg.rank <- left_join(aggsFull, tblFemaleRanks, by = c('year', 'aggressor' = 'id'))$rank %>% as.numeric()
-# aggsFull$recip.rank <- left_join(aggsFull, tblFemaleRanks, by = c('year', 'recip' = 'id'))$rank %>% as.numeric()
-# ###otherwise, use maternal rank by selecting rank of mother
-# aggsFull$agg.rank[is.na(aggsFull$agg.rank)] <- left_join(aggsFull[is.na(aggsFull$agg.rank),], tblFemaleRanks, by = c('year', 'agg.mom' = 'id'))$rank %>% as.numeric()
-# aggsFull$recip.rank[is.na(aggsFull$recip.rank)] <- left_join(aggsFull[is.na(aggsFull$recip.rank),], tblFemaleRanks, by = c('year', 'recip.mom' = 'id'))$rank %>% as.numeric()
-# 
-# ###agg and recip birthdates. Use minimum of date of birth and date first seen to incorporate individuals whose DOB is missing
-# aggsFull$agg.dob <- pmin(left_join(aggsFull, tblLifeHistory.long, by = c('aggressor' = 'id'))$DOB,
-#                          left_join(aggsFull, tblLifeHistory.long, by = c('aggressor' = 'id'))$DFS)
-# 
-# aggsFull$recip.dob <- pmin(left_join(aggsFull, tblLifeHistory.long, by = c('recip' = 'id'))$DOB,
-#                          left_join(aggsFull, tblLifeHistory.long, by = c('recip' = 'id'))$DFS)
-# 
-
 #### Assemble relevant variables for each cub. 
 cub_dev_vars <- list()
 for(i in 1:nrow(cohortInfo)){
